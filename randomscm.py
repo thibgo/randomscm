@@ -46,11 +46,7 @@ def _parallel_predict_proba(ensemble, X, idx, results):
     """
     for k in idx:
         res = ensemble.estimators[k].predict(X[:, ensemble.estim_features[k]])
-        if ensemble.min_cq_combination:
-            res[res==0] = -1
-            results = results + ensemble.min_cq_weights[k]*res
-        else:
-            results = results + res
+        results = results + res
     return results
 
 
@@ -140,8 +136,6 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
                  p_options=[1.0],
                  model_type="conjunction",
                  n_jobs=None,
-                 min_cq_combination=False,
-                 min_cq_mu = 10e-3,
                  random_state=None):
         self.n_estimators = n_estimators
         self.max_samples = max_samples
@@ -150,8 +144,6 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         self.p_options = p_options
         self.model_type = model_type
         self.n_jobs = n_jobs
-        self.min_cq_combination = min_cq_combination
-        self.min_cq_mu = min_cq_mu
         self.random_state = random_state
         self.labels_to_binary = {}
         self.binary_to_labels = {}
@@ -264,18 +256,6 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         self.estim_features += list(itertools.chain.from_iterable(
             t[1] for t in all_results))
 
-        if self.min_cq_combination:
-            predictions = np.zeros((X.shape[0], self.n_estimators))
-            for k in range(self.n_estimators):
-                predictions[:, k] = self.estimators[k].predict(X[:, self.estim_features[k]])
-
-            from .min_cq import MinCqLearner
-            mincq = MinCqLearner(self.min_cq_mu, "stumps", n_stumps_per_attribute=1,
-                                 self_complemented=False)
-            mincq.fit(predictions, y)
-            self.min_cq_weights = mincq.majority_vote.weights
-            self.min_cq_weights /= np.sum(np.abs(self.min_cq_weights))
-
         if get_feature_importances:
             importances = self.features_importance()
             self.feature_importances_ = np.array([importances['avg'][k]
@@ -321,12 +301,8 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         results = Parallel(n_jobs=n_jobs)(delayed(_parallel_predict_proba)(
                 self, X, range(starts[i], starts[i+1]), results)
                 for i in range(n_jobs))
-        if not self.min_cq_combination:
-            votes = sum(results) / self.n_estimators
-            proba = np.array([np.array([1 - vote, vote]) for vote in votes])
-        else:
-            votes = sum(results)
-            proba = np.array([np.array([(1 - vote)/2, (1 + vote)/2]) for vote in votes])
+        votes = sum(results) / self.n_estimators
+        proba = np.array([np.array([1 - vote, vote]) for vote in votes])
         return proba
 
     def features_importance(self):
@@ -352,8 +328,8 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
                 else:
                     feature_id_occurences[id_feat] = 1
             # sum the rules importances :
-            rules_importances = estim.get_rules_importances() # activate it when pyscm will implement importance
-            #rules_importances = np.ones(len(estim.model_.rules)) #delete it when pyscm will implement importance
+            #rules_importances = estim.get_rules_importances() # activate it when pyscm will implement importance
+            rules_importances = np.ones(len(estim.model_.rules)) #delete it when pyscm will implement importance
             for rule, importance in zip(estim.model_.rules, rules_importances):
                 global_feat_id = features_idx[rule.feature_idx]
                 if global_feat_id in importances['avg']:
@@ -363,7 +339,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
                 else:
                     importances['avg'][global_feat_id] = importance
                     importances['max'][global_feat_id] = importance
-        importances['avg'] = {k: round(v / feature_id_occurences[k], 3) for k, v in importances['avg'].items()}
+        importances['avg'] = {k: v / feature_id_occurences[k] for k, v in importances['avg'].items()}
         return importances
 
     def all_data_tiebreaker(self, model_type, feature_idx, thresholds, rule_type, X, y):
@@ -395,47 +371,6 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
                 keep_id = k
                 keep_id_score = rule_global_score
         return keep_id
-
-    def classifiers_disagreement(self, X):
-        """
-        Compute disagreement between estimators
-
-        Returns:
-        ----------
-        disagreement : dict 
-            disagreement['global'] : int
-                global disagreement, computed with the following formula :
-                average(disagreement(c1, c2))
-                for (c1, c2) all the pairs of distinct estimators in the model
-                with 
-                disagreement(c1, c2) = (# of examples where c1 and c2 differs)/(# of examples)
-            disagreement['estims'] : list
-                list of disagreements of each estimator with the global model
-            disagreement['heatmap'] : matrix
-                heatmap of mutual disagreement for each pair of classifiers
-        """
-        check_is_fitted(self, ["estimators", "estim_features"])
-        disagreement = {'global' : 0, 'estims' : []}
-        total_comp = 0 # number of comparison of estimators
-        global_pred = self.predict(X)
-        heatmap = np.zeros((self.n_estimators, self.n_estimators))
-        for kA in range(len(self.estimators)):
-            estimA = self.estimators[kA]
-            predA = estimA.predict(X[:, self.estim_features[kA]])
-            disagree = np.not_equal(global_pred, predA).sum()/len(X) # disagreement of estimator A and global model
-            disagreement['estims'].append(disagree)
-            for kB in range(len(self.estimators)):
-                if kB == kA:
-                    continue # do not compare the estimator with itself
-                estimB = self.estimators[kB]
-                predB = estimB.predict(X[:, self.estim_features[kB]])
-                disagree = np.not_equal(predB, predA).sum()/len(X) # disagreement of estimators A and B
-                heatmap[kA][kB] = disagree
-                disagreement['global'] += disagree
-                total_comp += 1
-        disagreement['global'] = disagreement['global']/total_comp
-        disagreement['heatmap'] = heatmap
-        return disagreement
     
     def get_estimators_indices(self):
         """
