@@ -14,6 +14,22 @@ from joblib import effective_n_jobs, Parallel, delayed
 
 MAX_INT = np.iinfo(np.int32).max
 
+class FakeEstim():
+    """
+    Fake estimator used as a decoy if there is only one class in a specific sub-sampling.
+    Does nothing, and has no impact on feature importance.
+    """
+
+    def __init__(self):
+        pass
+
+    def fit(self, X, y):
+        self.unique_class = y[0]
+        return self
+
+    def predict(self, X):
+        return np.array([self.unique_class for _ in range(X.shape[0])])
+
 
 def _parallel_build_estimators(idx, ensemble, p_of_estims, seeds, X, y, tiebreaker):
     """
@@ -30,7 +46,8 @@ def _parallel_build_estimators(idx, ensemble, p_of_estims, seeds, X, y, tiebreak
         Xk = (X[samples_indices])[:, feature_indices]
         yk = y[samples_indices]
         if len(list(set(yk))) < 2:
-            raise ValueError("One of the subsamples contains elements from only 1 class, try increase max_samples value")
+            estim = FakeEstim()
+            # raise ValueError("One of the subsamples contains elements from only 1 class, try increase max_samples value")
         if tiebreaker is None:
             estim.fit(Xk, yk)
         else:
@@ -321,6 +338,8 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         importances = {'avg' : {}, 'max' : {}} # average and maximal feature/rule importances
         feature_id_occurences = {} # number of occurences of a feature in subsamples
         for (estim, features_idx) in zip(self.estimators, self.estim_features):
+            if isinstance(estim, FakeEstim):
+                continue
             # increment the total occurences of the feature :
             for id_feat in features_idx:
                 if id_feat in feature_id_occurences:
