@@ -65,7 +65,7 @@ def setup_package():
     keywords = ('machine learning, supervised learning, classification, '
                 'ensemble methods, bagging')
     packages = find_packages(exclude=['*.tests'])
-    install_requires = ['scikit-learn>=0.19', 'numpy', 'scipy', 'cvxopt', "pyscm"]
+    install_requires = ['scikit-learn>=0.19', 'numpy', 'scipy', 'cvxopt', 'pyscm-ml']
     python_requires = '>=3.5'
     extras_require = {}
     include_package_data = True
