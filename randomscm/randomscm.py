@@ -74,7 +74,7 @@ def _partition_estimators(n_estimators, n_jobs):
 
     # Partition estimators between jobs
     n_estimators_per_job = np.full(n_jobs, n_estimators // n_jobs,
-                                   dtype=np.int)
+                                   dtype=int)
     n_estimators_per_job[:n_estimators % n_jobs] += 1
     starts = np.cumsum(n_estimators_per_job)
 
@@ -250,7 +250,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         # validate max_features
         if isinstance(self.max_features, numbers.Integral):
             max_features = self.max_features
-        elif isinstance(self.max_features, np.float):
+        elif isinstance(self.max_features, float):
             max_features = self.max_features * pop_features
         else:
             raise ValueError("max_features must be int or float")
