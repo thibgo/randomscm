@@ -210,7 +210,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         return np.array(l), labels_dict
 
 
-    def fit(self, X, y, get_feature_importances=True, tiebreaker=None):
+    def fit(self, X, y, tiebreaker=None):
         """
         Fit the model with the given data
         """
@@ -273,12 +273,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         self.estim_features += list(itertools.chain.from_iterable(
             t[1] for t in all_results))
 
-        if get_feature_importances:
-            importances = self.features_importance()
-            self.feature_importances_ = np.array([importances['avg'][k]
-                                                  if k in importances['avg'] else 0
-                                                  for k in range(self.n_features)])
-            self.feature_importances_ /= np.sum(self.feature_importances_)
+        self.feature_importances_ = self.features_importance()
 
     def predict(self, X):
         """
@@ -324,41 +319,22 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
 
     def features_importance(self):
         """
-        Compute features importances in estimators rules
-
-        Returns:
-        ----------
-        importance : dict
-            importances['avg'] : dict (feature id as key, mean importance as value)
-                The mean importance of each feature over the estimators.
-            importances['max'] : dict (feature id as key, max importance as value)
-                The maximal importance of each feature over the estimators.
+        Returns an array with the importance value of each feature
+        Importance is computed as the ponderated number of use of the feature in the rules
         """
         check_is_fitted(self, ["estimators", "estim_features"])
-        importances = {'avg' : {}, 'max' : {}} # average and maximal feature/rule importances
-        feature_id_occurences = {} # number of occurences of a feature in subsamples
+        importances = np.zeros(max([f for est_f in self.estim_features for f in est_f])+1)
+
         for (estim, features_idx) in zip(self.estimators, self.estim_features):
             if isinstance(estim, FakeEstim):
                 continue
-            # increment the total occurences of the feature :
-            for id_feat in features_idx:
-                if id_feat in feature_id_occurences:
-                    feature_id_occurences[id_feat] += 1
-                else:
-                    feature_id_occurences[id_feat] = 1
             # sum the rules importances :
             #rules_importances = estim.get_rules_importances() # activate it when pyscm will implement importance
-            rules_importances = np.ones(len(estim.model_.rules)) #delete it when pyscm will implement importance
+            rules_importances = np.ones(len(estim.model_.rules)) / len(estim.model_.rules) #delete it when pyscm will implement importance
             for rule, importance in zip(estim.model_.rules, rules_importances):
                 global_feat_id = features_idx[rule.feature_idx]
-                if global_feat_id in importances['avg']:
-                    importances['avg'][global_feat_id] += importance
-                    if importance > importances['max'][global_feat_id]:
-                        importances['max'][global_feat_id] = importance
-                else:
-                    importances['avg'][global_feat_id] = importance
-                    importances['max'][global_feat_id] = importance
-        importances['avg'] = {k: v / feature_id_occurences[k] for k, v in importances['avg'].items()}
+                importances[global_feat_id] += importance
+        importances = importances / sum(importances)
         return importances
 
     def all_data_tiebreaker(self, model_type, feature_idx, thresholds, rule_type, X, y):
