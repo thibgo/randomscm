@@ -90,15 +90,17 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
     n_estimators : int, default=10
         The number of base estimators in the ensemble.
     max_samples : int or float, default=1.0
-        The number of samples to draw from X to train each base estimator with
+        The number of samples to draw from X to train each base estimator without
         replacement.
-        - If int, then draw `max_samples` samples.
-        - If float, then draw `max_samples * X.shape[0]` samples.
-    max_features : int or float, default=1.0
+        Can be 'sqrt', 'log2', 'auto', None, int or float
+        - If int, then draw 'max_samples' samples.
+        - If float, then draw 'max_samples * X.shape[0]' samples.
+    max_features : int or float, default='sqrt'
         The number of features to draw from X to train each base estimator (
         without replacement.
-        - If int, then draw `max_features` features.
-        - If float, then draw `max_features * X.shape[1]` features.
+        Can be 'sqrt', 'log2', 'auto', None, int or float
+        - If int, then draw 'max_features' features.
+        - If float, then draw 'max_features * X.shape[1]' features.
     max_rules : int
         maximal number of rules for the scm estimators
     p_options : list of float with len =< n_estimators, default=[1.0]
@@ -147,8 +149,8 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
     """
     def __init__(self,
                  n_estimators=100,
-                 max_samples=0.5,
-                 max_features=0.5,
+                 max_samples=1.0,
+                 max_features='sqrt',
                  max_rules=10,
                  p_options=[1.0],
                  model_type="conjunction",
@@ -239,21 +241,48 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         max_samples, max_features = self.max_samples, self.max_features
 
         # validate max_samples
-        if not isinstance(max_samples, numbers.Integral):
+        if max_samples is None:
+            max_samples = pop_samples
+        elif isinstance(max_samples, str):
+            if max_samples == 'auto':
+                max_samples = int(np.sqrt(pop_samples))
+            elif max_samples == 'sqrt':
+                max_samples = int(np.sqrt(pop_samples))
+            elif max_samples == 'log2':
+                max_samples = int(np.log2(pop_samples))
+            else:
+                raise ValueError("Invalid value for max_samples: %r" % max_samples)
+        elif isinstance(max_samples, float):
+            if not (0.0 < max_samples <= 1.0):
+                raise ValueError("max_samples float must be in ]0.0, 1.0]")
             max_samples = int(max_samples * pop_samples)
-        if not (0 < max_samples <= pop_samples):
-            raise ValueError("max_samples must be in (0, n_samples)")
+        elif isinstance(max_samples, numbers.Integral):
+            if not (0 < max_samples <= pop_samples):
+                raise ValueError("max_samples must be in (0, n_samples)")
         # store validated integer row sampling values
         self._max_samples = max_samples
         self._pop_samples = pop_samples
 
         # validate max_features
-        if isinstance(self.max_features, numbers.Integral):
-            max_features = self.max_features
-        elif isinstance(self.max_features, float):
-            max_features = self.max_features * pop_features
+        if max_features is None:
+            max_features = pop_features
+        elif isinstance(max_features, str):
+            if max_features == 'auto':
+                max_features = int(np.sqrt(pop_features))
+            elif max_features == 'sqrt':
+                max_features = int(np.sqrt(pop_features))
+            elif max_features == 'log2':
+                max_features = int(np.log2(pop_features))
+            else:
+                raise ValueError("Invalid value for max_features: %r" % max_features)
+        elif isinstance(max_features, numbers.Integral):
+            max_features = max_features
+        elif isinstance(max_features, float):
+            if not (0.0 < max_features <= 1.0):
+                raise ValueError('max_features float must be in ]0.0, 1.0]')
+            max_features = int(max_features * pop_features)
         else:
-            raise ValueError("max_features must be int or float")
+            raise ValueError("max_features must be int or float or None or 'auto' or 'sqrt' or 'log2'")
         if not (0 < max_features <= pop_features):
             raise ValueError("max_features must be in (0, n_features)")
         max_features = max(1, int(max_features))
