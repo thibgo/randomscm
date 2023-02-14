@@ -280,7 +280,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         elif isinstance(max_features, float):
             if not (0.0 < max_features <= 1.0):
                 raise ValueError('max_features float must be in ]0.0, 1.0]')
-            max_features = int(max_features * pop_features)
+            max_features = round(max_features * pop_features)
         else:
             raise ValueError("max_features must be int or float or None or 'auto' or 'sqrt' or 'log2'")
         if not (0 < max_features <= pop_features):
