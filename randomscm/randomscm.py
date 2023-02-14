@@ -352,7 +352,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         Importance is computed as the ponderated number of use of the feature in the rules
         """
         check_is_fitted(self, ["estimators", "estim_features"])
-        importances = np.zeros(max([f for est_f in self.estim_features for f in est_f])+1)
+        importances = np.zeros(self._pop_features)
 
         for (estim, features_idx) in zip(self.estimators, self.estim_features):
             if isinstance(estim, FakeEstim):
@@ -363,7 +363,8 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
             for rule, importance in zip(estim.model_.rules, rules_importances):
                 global_feat_id = features_idx[rule.feature_idx]
                 importances[global_feat_id] += importance
-        importances = importances / sum(importances)
+        if sum(importances) > 0:
+            importances = importances / sum(importances)
         return importances
 
     def all_data_tiebreaker(self, model_type, feature_idx, thresholds, rule_type, X, y):
