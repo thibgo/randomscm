@@ -1,21 +1,31 @@
 ## randomSCM
 
-Set Covering Machine algorithm with bootstrap aggregating.
+The Bootstrap aggregating version of the great SCM
 
 ## Installation
 
+from PyPI :
+
 ``` 
-python setup.py install
+pip install randomscm
+```
+
+from source code :
+
+```
+git clone git@github.com:thibgo/randomscm.git
+python -m pip install .
+
 ```
 
 ## Usage
 ```
-from randomscm.randomscm import RandomScmClassifier
+from randomscm import RandomScmClassifier
 
 classifier= RandomScmClassifier()
 ```
 
 ## Contributors
- * [Thibaud Godon](https://github.com/thibgo)
+ * [Thibaud Godon](https://github.com/thibgo) (maintainer)
  * [Elina Francovic-Fontaine](https://github.com/ElinaFF)
  * [Baptiste Bauvin](https://github.com/babau1)
