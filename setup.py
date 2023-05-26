@@ -1,91 +1,88 @@
-# -*- coding: utf-8 -*-
-# ######### COPYRIGHT #########
-#
-# Copyright(c) 2021 Thibaud Godon
-# -----------------
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-#
-# Contributors:
-# ------------
-#
-# * Thibaud Godon <thibaud.godon@gmail.com>
-# * Elina Francovic-Fontaine <elina.francovic-fontaine.1@ulaval.ca>
-# * Baptiste Bauvin <baptiste.bauvin.1@ulaval.ca>
-#
-#
-# Description: 
-# -----------
-# Description: The Bootstrap aggregating version of the great SCM
-#
-#
-# Version:
-# -------
-# Version: 0.0
-#
-#
-# Licence:
-# -------
-# License: GPL-3
-#
-#
-# ######### COPYRIGHT #########
-import os
-from setuptools import setup, find_packages
+"""
+    randomscm -- The bootstrap aggregating version of the great SCM
+    Copyright (C) 2020 Thibaud Godon
 
-def setup_package():
-    """
-    Setup function
-    """
-    name = 'randomscm'
-    version = 0.0
-    dir = 'randomscm'
-    description = 'The Bootstrap aggregating version of the great SCM'
-    here = os.path.abspath(os.path.dirname(__file__))
-    url = "https://github.com/thibgo/randomscm"
-    project_urls = {
-        'Source': url,
-        'Tracker': '{}/issues'.format(url)}
-    author = 'Thibaud Godon'
-    author_email = 'thibaud.godon@gmail.com'
-    maintainer = 'Thibaud Godon',
-    maintainer_email = 'thibaud.godon@gmail.com',
-    license = 'Apache-2.0'
-    keywords = ('machine learning, supervised learning, classification, '
-                'ensemble methods, bagging')
-    packages = find_packages(exclude=['*.tests'])
-    install_requires = ['scikit-learn>=0.19', 'numpy', 'scipy', 'pyscm-ml']
-    python_requires = '>=3.5'
-    extras_require = {}
-    include_package_data = True
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    setup(name=name,
-          version=version,
-          description=description,
-          url=url,
-          project_urls=project_urls,
-          author=author,
-          author_email=author_email,
-          maintainer=maintainer,
-          maintainer_email=maintainer_email,
-          license=license,
-          keywords=keywords,
-          packages=packages,
-          install_requires=install_requires,
-          python_requires=python_requires,
-          extras_require=extras_require,
-          include_package_data=include_package_data)
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-if __name__ == "__main__":
-    setup_package()
+    For a copy of the GNU General Public License, see
+         <http://www.gnu.org/licenses/>.
+
+    Contributors:
+    ------------
+    * Thibaud Godon <thibaud.godon@protonmail.com>
+    * Elina Francovic-Fontaine <elina.francovic-fontaine.1@ulaval.ca>
+    * Baptiste Bauvin <baptiste.bauvin@lis-lab.fr >
+
+"""
+#from numpy import get_include as get_numpy_include
+from platform import system as get_os_name
+from setuptools import Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext as _build_ext
+
+# Configure the compiler based on the OS
+if get_os_name().lower() == "darwin":
+    os_compile_flags = ["-mmacosx-version-min=10.9"]
+else:
+    os_compile_flags = []
+
+
+# Required for the automatic installation of numpy
+class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        # Prevent numpy from thinking it is still in its setup process:
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+
+        self.include_dirs.append(numpy.get_include())
+
+
+#solver_module = Extension(
+#    "pyscm._scm_utility",
+#    language="c++",
+#    sources=["cpp_extensions/utility_python_bindings.cpp", "cpp_extensions/solver.cpp"],
+#    extra_compile_args=["-std=c++0x"] + os_compile_flags,
+#)
+
+dependencies = ['scikit-learn>=0.19', 'numpy', 'scipy', 'pyscm-ml']
+
+with open("README.md", "r") as f:
+    long_description = f.read()
+
+setup(
+    name="randomscm",
+    version="0.1.0",
+    packages=find_packages(),
+    cmdclass={"build_ext": build_ext},
+    setup_requires=dependencies,
+    install_requires=dependencies,
+    author="Thibaud Godon",
+    author_email="thibaud.godon@protonmail.com",
+    maintainer="Thibaud Godon",
+    maintainer_email="thibaud.godon@protonmail.com",
+    description="The Bootstrap aggregating version of the great SCM",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    license="GPL-3",
+    keywords="machine-learning classification ensemble-learning set-covering-machine rule-based-models",
+    url="https://github.com/aldro61/pyscm",
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Programming Language :: Python",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: OS Independent",
+        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    ],
+    #ext_modules=[solver_module],
+    test_suite="nose.collector",
+    tests_require=["nose"],
+)
