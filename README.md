@@ -15,15 +15,17 @@ from source code :
 ```
 git clone git@github.com:thibgo/randomscm.git
 python -m pip install .
-
 ```
 
 ## Usage
 ```
 from randomscm import RandomScmClassifier
 
-classifier= RandomScmClassifier()
+classifier = RandomScmClassifier()
 ```
+
+Classifier implements most of scikit-learn standard methods.
+
 
 ## Contributors
  * [Thibaud Godon](https://github.com/thibgo) (maintainer)
