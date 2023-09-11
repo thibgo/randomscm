@@ -18,62 +18,65 @@ class ParamPTests(TestCase):
         try:
             model = RandomScmClassifier(n_estimators=5, p=1.0)
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == 1.0
+            assert model.get_hyperparams()['p'] == 1.0
             assert model.p_for_estimators() == [1.0, 1.0, 1.0, 1.0, 1.0]
 
             model = RandomScmClassifier(n_estimators=5, p=1)
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == 1.0
+            assert model.get_hyperparams()['p'] == 1.0
             assert model.p_for_estimators() == [1.0, 1.0, 1.0, 1.0, 1.0]
 
             model = RandomScmClassifier(n_estimators=5, p=None)
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == 1.0
+            assert model.get_hyperparams()['p'] == None
             assert model.p_for_estimators() == [1.0, 1.0, 1.0, 1.0, 1.0]
 
             model = RandomScmClassifier(n_estimators=5, p=0.1)
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == 0.1
+            assert model.get_hyperparams()['p'] == 0.1
             assert model.p_for_estimators() == [0.1, 0.1, 0.1, 0.1, 0.1]
         
             model = RandomScmClassifier(n_estimators=5, p=10)
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == 10
+            assert model.get_hyperparams()['p'] == 10
             assert model.p_for_estimators() == [10, 10, 10, 10, 10]
 
         except Exception as e:
             self.fail("error with p parameter calculation when a float or an int is given")
         
         try:
-            model = RandomScmClassifier(n_estimators=5, p_options=[1.0])
+            model = RandomScmClassifier(n_estimators=5, p=[1.0])
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == [1.0]
+            assert model.get_hyperparams()['p'] == [1.0]
             assert model.p_for_estimators() == [1.0, 1.0, 1.0, 1.0, 1.0]
             
-            model = RandomScmClassifier(n_estimators=2, p_options=[1.0, 2.0])
+            model = RandomScmClassifier(n_estimators=2, p=[1.0, 2.0])
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == [1.0, 2.0]
+            assert model.get_hyperparams()['p'] == [1.0, 2.0]
             assert model.p_for_estimators() == [1.0, 2.0]
             
-            model = RandomScmClassifier(n_estimators=10, p_options=[1.0, 2.0])
+            model = RandomScmClassifier(n_estimators=10, p=[1.0, 2.0])
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == [1.0, 2.0]
+            assert model.get_hyperparams()['p'] == [1.0, 2.0]
             assert model.p_for_estimators() == [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 2.0]
 
-            model = RandomScmClassifier(n_estimators=10, p_options=[1, 2.0])
+            model = RandomScmClassifier(n_estimators=10, p=[1, 2.0])
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == [1, 2.0]
+            assert model.get_hyperparams()['p'] == [1, 2.0]
             assert model.p_for_estimators() == [1, 1, 1, 1, 1, 2.0, 2.0, 2.0, 2.0, 2.0]
             
-            model = RandomScmClassifier(n_estimators=5, p_options=[0.2, 1.5])
+            model = RandomScmClassifier(n_estimators=5, p=[0.2, 1.5])
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == 0.1
+            assert model.get_hyperparams()['p'] == [0.2, 1.5]
             assert model.p_for_estimators() == [0.2, 0.2, 1.5, 1.5, 1.5]
 
-            model = RandomScmClassifier(n_estimators=1, p_options=[0.2, 1.5])
+            model = RandomScmClassifier(n_estimators=1, p=[0.2, 1.5])
             model.fit(X, y)
-            assert model.get_hyperparams['p'] == [0.2]
-            assert model.p_for_estimators() == [0.2]
+            assert model.get_hyperparams()['p'] == [0.2, 1.5]
+            assert model.p_for_estimators() == [1.5]
+            
+            model = RandomScmClassifier(n_estimators=5, p='0.1')
+            self.assertRaises(ValueError, model.fit, X, y)
 
         except Exception as e:
             self.fail("error with p parameter calculation when a list of values is given")

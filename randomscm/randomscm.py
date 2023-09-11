@@ -103,11 +103,12 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         - If float, then draw 'max_features * X.shape[1]' features.
     max_rules : int
         maximal number of rules for the scm estimators
-    p_options : list of float with len =< n_estimators, default=[1.0]
-        The estimators will be fitted with values of p found in p_options
-        let k be k = n_estimators/len(p_options),
-        the k first estimators will have p=p_options[0],
-        the next k estimators will have p=p_options[1] and so on...
+    p : float, int or list of float with len =< n_estimators, default=1.0
+        The estimators will be fitted with the value of p or the values of p found in the list
+        If p is a list,
+            let k be k = n_estimators/len(list),
+            the k first estimators will have p=list[0],
+            the next k estimators will have p=list[1] and so on...
     model_type : string, default='conjunction'
         type of estimators to build
         accepted values : 'conjunction', 'disjunction'
@@ -132,14 +133,6 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
     estim_features : list of arrays
         The subset of drawn features for each base estimator.
 
-    Examples
-    --------
-    >>> random_scm = RandomScmClassifier(p_options=[2, 4], max_samples=0.5, max_features = 0.7)
-    >>> random_scm.fit(X_train, y_train)
-    >>> hyperparams = random_scm.get_hyperparams()
-    >>> importances = random_scm.features_importance()
-    >>> disagree = random_scm.classifiers_disagreement(X)
-
     References
     ----------
     .. [1] L. Breiman, "Pasting small votes for classification in large
@@ -152,7 +145,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
                  max_samples=1.0,
                  max_features='sqrt',
                  max_rules=10,
-                 p_options=[1.0],
+                 p=1.0,
                  model_type="conjunction",
                  n_jobs=None,
                  random_state=None):
@@ -160,7 +153,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         self.max_samples = max_samples
         self.max_features = max_features
         self.max_rules = max_rules
-        self.p_options = p_options
+        self.p = p
         self.model_type = model_type
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -169,15 +162,22 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
 
     def p_for_estimators(self):
         """Return the value of p for each estimator to fit."""
-        options_len = len(self.p_options) # number of options
-        estims_with_same_p = self.n_estimators // options_len # nb of estimators to fit with the same p
-        p_of_estims = []
-        if options_len > 1:
-            for k in range(options_len - 1):
-                opt = self.p_options[k] # an option
-                p_of_estims = p_of_estims + ([opt] * estims_with_same_p) # estims_with_same_p estimators with p=opt
-        p_of_estims = p_of_estims + ([self.p_options[-1]] * (self.n_estimators - len(p_of_estims)))
-        return p_of_estims
+        if isinstance(self.p, (int, float)):
+            return [self.p] * self.n_estimators
+        elif self.p is None:
+            return [1.0] * self.n_estimators
+        elif isinstance(self.p, list):
+            options_len = len(self.p) # number of options
+            estims_with_same_p = self.n_estimators // options_len # nb of estimators to fit with the same p
+            p_of_estims = []
+            if options_len > 1:
+                for k in range(options_len - 1):
+                    opt = self.p[k] # an option
+                    p_of_estims = p_of_estims + ([opt] * estims_with_same_p) # estims_with_same_p estimators with p=opt
+            p_of_estims = p_of_estims + ([self.p[-1]] * (self.n_estimators - len(p_of_estims)))
+            return p_of_estims
+        else:
+            raise ValueError("p must be an int, a float or a list (a list of floats of int)")
 
     def get_estimators(self):
         """Return the list of estimators of the classifier"""
@@ -193,7 +193,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
             'max_samples' : self.max_samples, 
             'max_features' : self.max_features, 
             'max_rules' : self.max_rules, 
-            'p_options' : self.p_options, 
+            'p' : self.p, 
             'model_type' : self.model_type, 
             'random_state' : self.random_state
         }
