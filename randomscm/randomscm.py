@@ -227,9 +227,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
 
         self.estimators = []
         self.estim_features = []
-        max_rules = self.max_rules
         p_of_estims_ = self.p_for_estimators()
-        model_type = self.model_type
 
         #seeds for reproductibility
         random_state = self.random_state
@@ -259,6 +257,7 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
         elif isinstance(max_samples, numbers.Integral):
             if not (0 < max_samples <= pop_samples):
                 raise ValueError("max_samples must be in (0, n_samples)")
+        max_samples = max(1, int(max_samples))
         # store validated integer row sampling values
         self._max_samples = max_samples
         self._pop_samples = pop_samples
