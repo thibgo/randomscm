@@ -254,6 +254,9 @@ class RandomScmClassifier(BaseEnsemble, ClassifierMixin):
             if not (0.0 < max_samples <= 1.0):
                 raise ValueError("max_samples float must be in ]0.0, 1.0]")
             max_samples = int(max_samples * pop_samples)
+            if max_samples < 1:
+                print("max_samples requested = {} (there must be at least 1 sample) : value is set to 1".format(max_samples))
+                max_samples = 1
         elif isinstance(max_samples, numbers.Integral):
             if not (0 < max_samples <= pop_samples):
                 raise ValueError("max_samples must be in (0, n_samples)")
